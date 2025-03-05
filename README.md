@@ -3,11 +3,11 @@
 
 ##### Ⅰ 数据获取
 + 来源：[大籽《白月光与朱砂痣》完整版MV](https://www.bilibili.com/video/BV1uA411H7CR/)
-+ 爬取过程省略，得到库中comment.txt
++ 爬取过程省略，得到库中[comment.txt](comment.txt)
 
 ##### Ⅱ 数据整理
 + 转为CSV格式方便后续处理
-+ 得到库中comment.csv
++ 得到库中[comment.csv](comment.csv)
 + 处理使用代码：[txt_to_csv.py](txt_to_csv.py)
 
 ##### Ⅲ NLP+情感处理
