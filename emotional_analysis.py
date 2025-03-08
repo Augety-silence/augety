@@ -1,31 +1,39 @@
 import pandas as pd
-import numpy as np
-from snownlp import SnowNLP
-from sklearn.svm import SVR
-from sklearn.preprocessing import StandardScaler
+from transformers import pipeline
 
-csv_path = "./comment.csv"
+# 读取 CSV 文件
+csv_path = "C:\\Users\\Augety\\Desktop\\comment.csv"
 df = pd.read_csv(csv_path)
 df.columns = ["姓名", "正文", "时间"]
 
-df["情感得分"] = df["正文"].apply(lambda text: SnowNLP(str(text)).sentiments)
-df["评论长度"] = df["正文"].apply(len)
+# 使用 Hugging Face 的情感分析管道
+sentiment_analyzer = pipeline("sentiment-analysis", truncation=True, max_length=512)
 
-X = df[["评论长度"]]
-y = df["情感得分"]
+# 定义一个函数，将长文本分割为多个片段
+def split_and_analyze(text, max_len=512):
+    words = text.split()
+    num_chunks = (len(words) + max_len - 1) // max_len
+    sentiments = []
 
-scaler = StandardScaler()
-X_scaled = scaler.fit_transform(X)
+    for i in range(num_chunks):
+        chunk = ' '.join(words[i * max_len:(i + 1) * max_len])
+        sentiment = sentiment_analyzer(chunk)[0]['label']
+        sentiments.append(sentiment)
+    
+    # 合并所有片段的情感标签，可以选择多数投票或平均处理
+    positive_count = sentiments.count("POSITIVE")
+    negative_count = sentiments.count("NEGATIVE")
+    
+    return "POSITIVE" if positive_count > negative_count else "NEGATIVE"
 
-svr_model = SVR(kernel='rbf')
-svr_model.fit(X_scaled, y)
+# 应用分割和情感分析
+df["情感分析结果"] = df["正文"].apply(lambda text: split_and_analyze(text))
 
-df["svr预处理"] = svr_model.predict(X_scaled)
-df["拟合处理"] = 1 / (1 + np.exp(-8 * df["svr预处理"]))
-df["长度处理"] = np.log(df["评论长度"] + 1) / np.log(df["评论长度"].max() + 1)
-df["长度加权"] = df["拟合处理"] * df["长度处理"]
+# 计算情感得分，label 为 POSITIVE 或 NEGATIVE，映射为 1 或 0
+df["情感得分"] = df["情感分析结果"].apply(lambda label: 1 if label == "POSITIVE" else 0)
 
-negative_comments = df[df["长度加权"] < 0.6]
+# 计算负面情绪占比
+negative_comments = df[df["情感得分"] == 0]
 negative_ratio = len(negative_comments) / len(df)
 
 print(f"有效评论个数: {len(df)}")
